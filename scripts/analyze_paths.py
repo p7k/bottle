@@ -6,7 +6,7 @@ import pickle
 from tqdm import tqdm
 
 starters = 'ccm_v0'
-targets = 'hopa'
+targets = 'mvacid'
 generations = 3
 
 expansion_dir = '../data/processed_expansions/'
@@ -17,8 +17,8 @@ fn = f"{starters}_to_{targets}_gen_{generations}_tan_sample_1_n_samples_1000" # 
 with open(expansion_dir + fn + '.pkl', 'rb') as f:
     pe = pickle.load(f)
 
-pr_am_errors = [] # Track predicted rxn am errors
-kr_am_errors = [] # Track known rxn am errors
+pr_am_errors = {} # Track predicted rxn am errors
+kr_am_errors = {} # Track known rxn am errors
 alignment_issues = [] # Track substrate alignment issues
 kekulize_issues = []
 norm = 'max atoms' # Normalize MCS atom count by larger molecule
@@ -33,7 +33,7 @@ for prid, pr in pbar:
     try:
         am_rxn_sma1 = atom_map(rxn_sma1)
     except:
-        pr_am_errors.append(prid)
+        pr_am_errors[prid] = pr
         continue
 
     a = 0 # Number known rxns analyzed
@@ -49,7 +49,7 @@ for prid, pr in pbar:
         try:
             am_rxn_sma2 = atom_map(rxn_sma2)
         except:
-            kr_am_errors.append(kr.id)
+            kr_am_errors[kr.id] = kr
             continue
 
         # Construct reaction objects
@@ -62,16 +62,16 @@ for prid, pr in pbar:
         rc_atoms = [elt.GetReactingAtoms() for elt in rxns] # Get reaction center atom idxs
 
         # Construct rxn ctr mol objs
-        try: # REMOVE after addressing KekulizationException in get_sub_mol
-            rcs = []
-            for i, t_rxn in enumerate(rxns):
-                temp = []
-                for j, t_mol in enumerate(t_rxn.GetReactants()):
-                    temp.append(get_sub_mol(t_mol, rc_atoms[i][j]))
-                rcs.append(temp)
-        except:
-            kekulize_issues.append((prid, kr.id))
-            continue
+        # try: # REMOVE after addressing KekulizationException in get_sub_mol
+        rcs = []
+        for i, t_rxn in enumerate(rxns):
+            temp = []
+            for j, t_mol in enumerate(t_rxn.GetReactants()):
+                temp.append(get_sub_mol(t_mol, rc_atoms[i][j]))
+            rcs.append(temp)
+        # except:
+        #     kekulize_issues.append((prid, kr.id))
+        #     continue
 
         # Align substrates of the 2 reactions
         rc_idxs = [] # Each element: (idx for rxn 1, idx for rxn 2)
@@ -137,15 +137,15 @@ for prid, pr in pbar:
 # command = f"source activate /home/stef/miniconda3/envs/thermo && python /home/stef/pickaxe_thermodynamics/path_mdf.py {' '.join(args)}"
 # subprocess.run(command, shell=True)
 
-thermo = load_json(thermo_dir + fn + '.json')
-for k,v in thermo.items():
-    st = tuple(k.split('>'))
-    for i, elt in enumerate(thermo[k]):
-        if elt['mdf']:
-            pe._st2paths[st][i].mdf = elt['mdf']
-            pe._st2paths[st][i].dG_opt = elt['dG_opt']
-            pe._st2paths[st][i].dG_err = elt['dG_err']
-            pe._st2paths[st][i].conc_opt = elt['conc_opt']
+# thermo = load_json(thermo_dir + fn + '.json')
+# for k,v in thermo.items():
+#     st = tuple(k.split('>'))
+#     for i, elt in enumerate(thermo[k]):
+#         if elt['mdf']:
+#             pe._st2paths[st][i].mdf = elt['mdf']
+#             pe._st2paths[st][i].dG_opt = elt['dG_opt']
+#             pe._st2paths[st][i].dG_err = elt['dG_err']
+#             pe._st2paths[st][i].conc_opt = elt['conc_opt']
 
 
 # Save processed expansion object

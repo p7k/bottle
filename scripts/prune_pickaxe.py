@@ -33,7 +33,7 @@ pruned_cpds = set()
 '''
 Load known reaction information
 '''
-known_rxns = load_json("../data/mapping/known_rxns_jni_w_enzyme_validation.json") #  data/mapping/known_rxns_swissprot_enzymes_plus_mcs_90_240310.json
+known_rxns = load_json("../data/mapping/known_rxns_swissprot_enzymes_plus_mcs_90_240310.json") # data/mapping/known_rxns_jni_w_enzyme_validation.json 
 rule2krhash = defaultdict(list)
 for k,v in known_rxns.items():
 
